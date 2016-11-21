@@ -17,10 +17,9 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 
 import okhttp3.MediaType;
+import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -144,14 +143,15 @@ public class MainActivity extends AppCompatActivity {
         progressDialog.show();
 
         // Map is used to multipart the file using okhttp3.RequestBody
-        Map<String, RequestBody> map = new HashMap<>();
         File file = new File(mediaPath);
 
         // Parsing any Media type file
         RequestBody requestBody = RequestBody.create(MediaType.parse("*/*"), file);
-        map.put("file\"; filename=\"" + file.getName() + "\"", requestBody);
+        MultipartBody.Part fileToUpload = MultipartBody.Part.createFormData("file", file.getName(), requestBody);
+        RequestBody filename = RequestBody.create(MediaType.parse("text/plain"), file.getName());
+
         ApiConfig getResponse = AppConfig.getRetrofit().create(ApiConfig.class);
-        Call<ServerResponse> call = getResponse.upload("token", map);
+        Call<ServerResponse> call = getResponse.uploadFile(fileToUpload, filename);
         call.enqueue(new Callback<ServerResponse>() {
             @Override
             public void onResponse(Call<ServerResponse> call, Response<ServerResponse> response) {
@@ -163,6 +163,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(getApplicationContext(), serverResponse.getMessage(),Toast.LENGTH_SHORT).show();
                     }
                 } else {
+                    assert serverResponse != null;
                     Log.v("Response", serverResponse.toString());
                 }
                 progressDialog.dismiss();
