@@ -10,5 +10,11 @@ import retrofit2.http.Part;
 interface ApiConfig {
     @Multipart
     @POST("retrofit_example/upload_image.php")
-    Call<ServerResponse> uploadFile(@Part MultipartBody.Part file, @Part("file") RequestBody name);
+    Call<ServerResponse> uploadFile(@Part MultipartBody.Part file,
+                                    @Part("file") RequestBody name);
+
+    @Multipart
+    @POST("retrofit_example/upload_multiple_files.php")
+    Call<ServerResponse> uploadMulFile(@Part MultipartBody.Part file1,
+                                       @Part MultipartBody.Part file2);
 }

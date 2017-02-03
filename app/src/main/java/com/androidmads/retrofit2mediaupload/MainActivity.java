@@ -14,6 +14,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
@@ -27,11 +28,12 @@ import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
-    Button btnUpload, btnPickImage, btnPickVideo;
-    String mediaPath;
+    Button btnUpload, btnMulUpload, btnPickImage, btnPickVideo;
+    String mediaPath, mediaPath1;
     ImageView imgView;
-    String[] mediaColumns = { MediaStore.Video.Media._ID };
+    String[] mediaColumns = {MediaStore.Video.Media._ID};
     ProgressDialog progressDialog;
+    TextView str1, str2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,14 +44,24 @@ public class MainActivity extends AppCompatActivity {
         progressDialog.setMessage("Uploading...");
 
         btnUpload = (Button) findViewById(R.id.upload);
+        btnMulUpload = (Button) findViewById(R.id.uploadMultiple);
         btnPickImage = (Button) findViewById(R.id.pick_img);
         btnPickVideo = (Button) findViewById(R.id.pick_vdo);
         imgView = (ImageView) findViewById(R.id.preview);
+        str1 = (TextView) findViewById(R.id.filename1);
+        str2 = (TextView) findViewById(R.id.filename2);
 
         btnUpload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 uploadFile();
+            }
+        });
+
+        btnMulUpload.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                uploadMultipleFiles();
             }
         });
 
@@ -91,6 +103,7 @@ public class MainActivity extends AppCompatActivity {
 
                 int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
                 mediaPath = cursor.getString(columnIndex);
+                str1.setText(mediaPath);
                 // Set the Image in ImageView for Previewing the Media
                 imgView.setImageBitmap(BitmapFactory.decodeFile(mediaPath));
                 cursor.close();
@@ -107,9 +120,11 @@ public class MainActivity extends AppCompatActivity {
                 cursor.moveToFirst();
 
                 int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
-                mediaPath = cursor.getString(columnIndex);
+
+                mediaPath1 = cursor.getString(columnIndex);
+                str2.setText(mediaPath1);
                 // Set the Video Thumb in ImageView Previewing the Media
-                imgView.setImageBitmap(getThumbnailPathForLocalFile(MainActivity.this,selectedVideo));
+                imgView.setImageBitmap(getThumbnailPathForLocalFile(MainActivity.this, selectedVideo));
                 cursor.close();
 
             } else {
@@ -158,9 +173,50 @@ public class MainActivity extends AppCompatActivity {
                 ServerResponse serverResponse = response.body();
                 if (serverResponse != null) {
                     if (serverResponse.getSuccess()) {
-                        Toast.makeText(getApplicationContext(), serverResponse.getMessage(),Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), serverResponse.getMessage(), Toast.LENGTH_SHORT).show();
                     } else {
-                        Toast.makeText(getApplicationContext(), serverResponse.getMessage(),Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), serverResponse.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    assert serverResponse != null;
+                    Log.v("Response", serverResponse.toString());
+                }
+                progressDialog.dismiss();
+            }
+
+            @Override
+            public void onFailure(Call<ServerResponse> call, Throwable t) {
+
+            }
+        });
+    }
+
+    // Uploading Image/Video
+    private void uploadMultipleFiles() {
+        progressDialog.show();
+
+        // Map is used to multipart the file using okhttp3.RequestBody
+        File file = new File(mediaPath);
+        File file1 = new File(mediaPath1);
+
+        // Parsing any Media type file
+        RequestBody requestBody1 = RequestBody.create(MediaType.parse("*/*"), file);
+        RequestBody requestBody2 = RequestBody.create(MediaType.parse("*/*"), file1);
+
+        MultipartBody.Part fileToUpload1 = MultipartBody.Part.createFormData("file1", file.getName(), requestBody1);
+        MultipartBody.Part fileToUpload2 = MultipartBody.Part.createFormData("file2", file1.getName(), requestBody2);
+
+        ApiConfig getResponse = AppConfig.getRetrofit().create(ApiConfig.class);
+        Call<ServerResponse> call = getResponse.uploadMulFile(fileToUpload1, fileToUpload2);
+        call.enqueue(new Callback<ServerResponse>() {
+            @Override
+            public void onResponse(Call<ServerResponse> call, Response<ServerResponse> response) {
+                ServerResponse serverResponse = response.body();
+                if (serverResponse != null) {
+                    if (serverResponse.getSuccess()) {
+                        Toast.makeText(getApplicationContext(), serverResponse.getMessage(), Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getApplicationContext(), serverResponse.getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 } else {
                     assert serverResponse != null;
